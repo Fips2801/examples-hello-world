@@ -1,12 +1,14 @@
 function md5(str: string): string {
-  function cmn(q: number,a: number,b: number,x: number,s: number,t: number){a=m((a+q+b+x+t)<<s|a>>>32-s);return a+b|0}
+  function cmn(q: number,a: number,b: number,x: number,s: number,t: number){a=(a+q+b+x+t)<<s|a>>>32-s;return a+b|0}
   function ff(a: number,b: number,c: number,d: number,x: number,s: number,t: number){return cmn(b&c|~b&d,a,b,x,s,t)}
   function gg(a: number,b: number,c: number,d: number,x: number,s: number,t: number){return cmn(b&d|c&~d,a,b,x,s,t)}
   function hh(a: number,b: number,c: number,d: number,x: number,s: number,t: number){return cmn(b^c^d,a,b,x,s,t)}
   function ii(a: number,b: number,c: number,d: number,x: number,s: number,t: number){return cmn(c^(b|~d),a,b,x,s,t)}
-  function m(n: number){return n>>>0}
-  function md5cycle(x: number[],k: number[]){
-    let a=x[0],b=x[1],c=x[2],d=x[3];
+  const s=unescape(encodeURIComponent(str)); let h=[1732584193,4023233417,2562383102,271733878];
+  const l=s.length; const n:number[]=[]; for(let i=0;i<l;i++) n[i>>2]|=s.charCodeAt(i)<<(i%4<<3);
+  n[l>>2]|=128<<(l%4<<3); n[(((l+8)>>6<<4)+14)]=l<<3; for(let i=0;i<n.length;i+=16){
+    let a=h[0],b=h[1],c=h[2],d=h[3];
+    const k=n.slice(i,i+16);
     a=ff(a,b,c,d,k[0],7,-680876936);d=ff(d,a,b,c,k[1],12,-389564586);c=ff(c,d,a,b,k[2],17,606105819);b=ff(b,c,d,a,k[3],22,-1044525330);
     a=ff(a,b,c,d,k[4],7,-176418897);d=ff(d,a,b,c,k[5],12,1200080426);c=ff(c,d,a,b,k[6],17,-1473231341);b=ff(b,c,d,a,k[7],22,-45705983);
     a=ff(a,b,c,d,k[8],7,1770035416);d=ff(d,a,b,c,k[9],12,-1958414417);c=ff(c,d,a,b,k[10],17,-42063);b=ff(b,c,d,a,k[11],22,-1990404162);
@@ -23,31 +25,39 @@ function md5(str: string): string {
     a=ii(a,b,c,d,k[12],6,1700485571);d=ii(d,a,b,c,k[3],10,-1894986606);c=ii(c,d,a,b,k[10],15,-1051523);b=ii(b,c,d,a,k[1],21,-2054922799);
     a=ii(a,b,c,d,k[8],6,1873313359);d=ii(d,a,b,c,k[15],10,-30611744);c=ii(c,d,a,b,k[6],15,-1560198380);b=ii(b,c,d,a,k[13],21,1309151649);
     a=ii(a,b,c,d,k[4],6,-145523070);d=ii(d,a,b,c,k[11],10,-1120210379);c=ii(c,d,a,b,k[2],15,718787259);b=ii(b,c,d,a,k[9],21,-343485551);
-    x[0]=m(a+x[0]);x[1]=m(b+x[1]);x[2]=m(c+x[2]);x[3]=m(d+x[3]);
+    h[0]=(a+h[0])>>>0;h[1]=(b+h[1])>>>0;h[2]=(c+h[2])>>>0;h[3]=(d+h[3])>>>0;
   }
-  const s = unescape(encodeURIComponent(str)); let h = [1732584193,4023233417,2562383102,271733878];
-  const l = s.length; const n = []; for(let i=0;i<l;i++) n[i>>2]|=s.charCodeAt(i)<<(i%4<<3);
-  n[l>>2]|=128<<(l%4<<3); n[(((l+8)>>6<<4)+14)]=l<<3; for(let i=0;i<n.length;i+=16) md5cycle(h,n.slice(i,i+16));
   let r=""; for(let i=0;i<4;i++) for(let j=0;j<4;j++) r+=("0"+(h[i]>>j*8&255).toString(16)).slice(-2); return r;
 }
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
-  const fid = url.searchParams.get("fid") || url.searchParams.get("id");
-  if (!fid) return new Response(JSON.stringify({error:"no fid"}), {headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"}});
+  const fid = url.searchParams.get("fid") || url.searchParams.get("id") || "196221276";
   const time = Date.now().toString();
   const sign = md5(`fid=${fid}&time=${time}tB87#kPtkxqOS2`);
   const body = JSON.stringify({fid, time, sign});
-  const r = await fetch("https://wos-giftcode-api.centurygame.com/api/player", {
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "User-Agent":"Mozilla/5.0",
-      "Origin":"https://wos-giftcode.centurygame.com",
-      "Referer":"https://wos-giftcode.centurygame.com/"
-    },
-    body
-  });
-  const text = await r.text();
-  return new Response(text, {headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"}});
+  const headers = {
+    "Content-Type":"application/json",
+    "User-Agent":"Mozilla/5.0",
+    "Origin":"https://wos-giftcode.centurygame.com",
+    "Referer":"https://wos-giftcode.centurygame.com/"
+  };
+  const endpoints = [
+    "https://wos-giftcode-api.centurygame.com/api/player",
+    "https://wos-giftcode-api.centurygame.com/api/player/info",
+    "https://wos-giftcode-api.centurygame.com/api/gift_code/player"
+  ];
+  for(const ep of endpoints){
+    try{
+      const r = await fetch(ep, {method:"POST", headers, body});
+      const t = await r.text();
+      if(t.includes("nickname") || t.includes("\"data\"") || t.includes("stove_lv")){
+        return new Response(t, {headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"}});
+      }
+    }catch(e){}
+  }
+  // fallback: erste Antwort zurückgeben
+  const r = await fetch(endpoints[0], {method:"POST", headers, body});
+  const t = await r.text();
+  return new Response(t, {headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"}});
 });
